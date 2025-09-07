@@ -32,7 +32,7 @@ namespace DatingAppBackend.Controllers
             users[user.PhoneNumber] = user;
 
             await _otpService.SendOtp(user.PhoneNumber, otp);
-            return Ok(new { message = "OTP sent successfully" });
+            return Ok(new { message = "OTP has been sent successfully" });
         }
 
         // STEP 2: Verify OTP
