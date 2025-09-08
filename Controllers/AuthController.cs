@@ -24,15 +24,22 @@ namespace DatingAppBackend.Controllers
         public async Task<IActionResult> SendOtp([FromBody] User user)
         {
             if (string.IsNullOrWhiteSpace(user.PhoneNumber))
-                return BadRequest(new { message = "Phone number is required" });
+                return BadRequest(new { success = false, message = "Phone number is required" });
 
             string otp = new Random().Next(1000, 9999).ToString();
             user.Otp = otp;
             user.OtpExpiry = DateTime.UtcNow.AddMinutes(2);
             users[user.PhoneNumber] = user;
 
-            await _otpService.SendOtp(user.PhoneNumber, otp);
-            return Ok(new { message = "OTP has been sent successfully" });
+            try
+            {
+                await _otpService.SendOtp(user.PhoneNumber, otp);
+                return Ok(new { success = true, message = "OTP sent successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = $"Failed to send OTP: {ex.Message}" });
+            }
         }
 
         // STEP 2: Verify OTP
@@ -40,16 +47,16 @@ namespace DatingAppBackend.Controllers
         public IActionResult VerifyOtp([FromBody] User user)
         {
             if (string.IsNullOrWhiteSpace(user.PhoneNumber) || string.IsNullOrWhiteSpace(user.Otp))
-                return BadRequest(new { message = "Phone and OTP are required" });
+                return BadRequest(new { success = false, message = "Phone and OTP are required" });
 
             if (users.TryGetValue(user.PhoneNumber, out var saved) &&
                 saved.Otp == user.Otp &&
                 saved.OtpExpiry > DateTime.UtcNow)
             {
-                return Ok(new { message = "OTP verified successfully" });
+                return Ok(new { success = true, message = "OTP verified successfully" });
             }
 
-            return BadRequest(new { message = "Invalid or expired OTP" });
+            return BadRequest(new { success = false, message = "Invalid or expired OTP" });
         }
     }
 }
